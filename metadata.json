@@ -1,0 +1,7 @@
+{
+  "name": "Parache128-V2.0",
+  "description": "Terminal logística de escaneo de alta precisión para gestión de inventarios y registro de códigos en tiempo real (Modo Local).",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

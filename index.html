@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PARACHE Auditor</title>
+
+<style>
+:root{
+  --bg:#0a0a0d;
+  --glass:rgba(255,255,255,0.04);
+  --border:rgba(220,220,240,0.08);
+  --text:#e8e8f0;
+  --accent:#88aaff;
+  --red:#ff6b6b;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:env(safe-area-inset-top) 12px 20px;overflow:auto}
+.app{max-width:420px;width:100%}
+.glass{background:var(--glass);backdrop-filter:blur(32px);border:1px solid var(--border);border-radius:18px;padding:28px 20px;margin-bottom:20px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+h1{font-size:32px;font-weight:300;text-align:center;margin-bottom:32px;letter-spacing:3px;color:#fff}
+input,button{width:100%;padding:16px;margin:12px 0;border:none;border-radius:12px;font-size:17px}
+button{background:var(--accent);color:#000;font-weight:600;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:20px}
+th,td{padding:14px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);font-size:15px}
+th{font-weight:600;color:#a0aaff;text-transform:uppercase;letter-spacing:1px;font-size:13px}
+.done{background:rgba(0,120,0,.25);text-decoration:line-through}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="glass">
+    <h1>PARACHE<br><span style="font-size:18px;opacity:.7">AUDITOR</span></h1>
+
+    <!-- PIN -->
+    <div id="pinScreen">
+      <input type="password" id="pin" placeholder="Código 4 dígitos" maxlength="4">
+      <button onclick="checkPin()">Entrar</button>
+    </div>
+
+    <!-- APP -->
+    <div id="main" style="display:none">
+      <input type="file" id="csv" accept=".csv,.txt">
+      <button onclick="load()">Cargar inventario</button>
+
+      <input type="text" id="search" placeholder="Buscar bin o pieza..." oninput="render()">
+
+      <table>
+        <thead><tr><th>BIN</th><th>NÚMERO DE PIEZA</th><th>CANTIDAD</th></tr></thead>
+        <tbody id="list"></tbody>
+      </table>
+
+      <button onclick="exportTxt()" style="margin-top:25px;background:var(--red)">Exportar auditoría</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Cambia este PIN por el que tú quieras
+const PIN = "1985";
+
+if(localStorage.p){document.getElementById("pinScreen").style.display="none";document.getElementById("main").style.display="block";}
+function checkPin(){
+  const v=document.getElementById("pin").value;
+  if(v===PIN||localStorage.p===v){
+    localStorage.p=v;
+    document.getElementById("pinScreen").style.display="none";
+    document.getElementById("main").style.display="block";
+  }else alert("PIN incorrecto");
+}
+
+let data={},done=new Set();
+
+function load(){
+  const f=document.getElementById("csv").files[0];
+  if(!f)return alert("Selecciona archivo");
+  const r=new FileReader();
+  r.onload=e=>{
+    const l=e.target.result.split("\n");
+    data={};
+    l.forEach(x=>{
+      if(!x.trim())return;
+      const c=x.split(",");
+      if(c.length>=4){
+        const part=c[0].replace(/"/g,"").trim();
+        const bin=c[2].trim();
+        const qty=parseInt(c[3])||0;
+        if(!data[bin])data[bin]={part,qty:0};
+        data[bin].qty+=qty;
+        if(!data[bin].part)data[bin].part=part;
+      }
+    });
+    render();
+  };
+  r.readAsText(f);
+}
+
+function render(){
+  const s=document.getElementById("search").value.toUpperCase();
+  const t=document.getElementById("list");
+  t.innerHTML="";
+  Object.entries(data).forEach(([b,i])=>{
+    if(b.includes(s)||i.part.includes(s)){
+      const r=document.createElement("tr");
+      r.className=done.has(b)?"done":"";
+      r.innerHTML=`<td><strong>${b}</strong></td><td>${i.part}</td><td>${i.qty}</td>`;
+      r.onclick=_=>{
+        done.has(b)?done.delete(b):done.add(b);
+        render();
+        navigator.vibrate?.(100);
+      };
+      t.appendChild(r);
+    }
+  });
+}
+
+function exportTxt(){
+  let txt="AUDITORÍA PARACHE – "+new Date().toLocaleString()+"\n\n";
+  let p=0;
+  Object.entries(data).forEach(([b,i])=>{
+    const st=done.has(b)?data[b].qty:"NO AUDITADO";
+    txt+=`${b.padEnd(12)} ${data[b].part.padEnd(30)} Cantidad: ${data[b].qty} → ${st}\n`;
+    if(!done.has(b))p++;
+  });
+  txt+=`\nDISCREPANCIAS PENDIENTES: ${p}`;
+  const b=new Blob([txt],{type:"text/plain"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(b);
+  a.download="auditoria-parache.txt";
+  a.click();
+}
+</script>
+</body>
+</html>
