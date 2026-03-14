@@ -1,84 +1,614 @@
-
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Parache Pro Terminal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --parache-red: #dc2626;
-            --parache-dark: #000000;
-        }
-        body {
-            background-color: var(--parache-dark);
-            overscroll-behavior-y: contain;
-            color: #f4f4f5;
-            font-family: 'JetBrains Mono', monospace;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .safe-area-bottom {
-            padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
-        }
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #000;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--parache-red);
-            border-radius: 10px;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 24px;
-            width: 24px;
-            border-radius: 50%;
-            background: var(--parache-red);
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(220, 38, 38, 0.6);
-            border: 3px solid #fff;
-        }
-        .scanner-fade {
-            mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
-        }
-        @keyframes scanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-        .scanline-effect {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--parache-red), transparent);
-            animation: scanline 3s linear infinite;
-            opacity: 0.5;
-            z-index: 35;
-            pointer-events: none;
-        }
-        .glitch-item:active {
-            filter: hue-rotate(90deg);
-        }
-    </style>
-<script type="importmap">
-{
-  "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "@google/genai": "https://esm.sh/@google/genai"
-  }
-}
-</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0b0c14">
+  <title>Filtro Express Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep:#0b0c14; --bg-card:#13141f; --bg-sf:#1a1c2b; --bg-in:#1e2033;
+      --bdr:rgba(255,255,255,0.06);
+      --t100:#fff; --t80:rgba(255,255,255,.8); --t60:rgba(255,255,255,.6);
+      --t40:rgba(255,255,255,.4); --t20:rgba(255,255,255,.2); --t10:rgba(255,255,255,.1);
+      --go:#34d399; --go-bg:rgba(52,211,153,.10); --go-bdr:rgba(52,211,153,.25);
+      --mid:#fbbf24; --mid-bg:rgba(251,191,36,.08); --mid-bdr:rgba(251,191,36,.22);
+      --no:#f87171; --no-bg:rgba(248,113,113,.08); --no-bdr:rgba(248,113,113,.22);
+      --blue:#60a5fa; --purp:#a78bfa;
+      --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+    html{-webkit-text-size-adjust:100%}
+    body{
+      font-family:'Outfit',-apple-system,sans-serif;
+      background:var(--bg-deep); color:var(--t100);
+      height:100vh; height:100dvh;
+      display:flex; justify-content:center;
+      overscroll-behavior:none; overflow:hidden;
+    }
+
+    /* ═══ CARD — exactly viewport ═══ */
+    .card{
+      width:100%; max-width:430px;
+      height:100vh; height:100dvh;
+      background:var(--bg-card);
+      display:flex; flex-direction:column;
+      overflow:hidden; position:relative;
+    }
+    .card::before{
+      content:'';position:absolute;inset:0;
+      background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+      pointer-events:none;z-index:0;
+    }
+    .card>*{position:relative;z-index:1}
+
+    /* ═══ HEADER — compact ═══ */
+    .hdr{
+      text-align:center;
+      padding:calc(var(--st) + 10px) 20px 8px;
+      flex-shrink:0; position:relative;
+    }
+    .hdr::after{content:'';position:absolute;bottom:0;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,var(--bdr),transparent)}
+    .hdr h1{
+      font-size:22px;font-weight:900;letter-spacing:-.6px;
+      background:linear-gradient(135deg,#fff,rgba(255,255,255,.65));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .hdr .sub{font-size:11px;font-weight:500;color:var(--t40);margin-top:2px}
+    .rst{
+      position:absolute;top:calc(var(--st) + 6px);right:12px;
+      width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+      background:var(--bg-sf);border:1px solid var(--bdr);border-radius:10px;cursor:pointer;
+      transition:transform .15s;
+    }
+    .rst:active{transform:scale(.9)}
+    .rst svg{width:16px;height:16px;stroke:var(--t40)}
+
+    /* ═══ TABS — slim ═══ */
+    .tabs{
+      display:flex;gap:4px;padding:8px 20px 6px;flex-shrink:0;
+    }
+    .tb{
+      flex:1;height:38px;display:flex;align-items:center;justify-content:center;gap:5px;
+      background:var(--bg-sf);border:1px solid var(--bdr);border-radius:10px;
+      font-size:13px;font-weight:700;color:var(--t40);cursor:pointer;
+      transition:all .2s;position:relative;
+    }
+    .tb svg{width:14px;height:14px;stroke:currentColor;flex-shrink:0}
+    .tb.on{background:rgba(255,255,255,.08);color:var(--t100);border-color:rgba(255,255,255,.12)}
+    .tb:active{transform:scale(.96)}
+    .badge{
+      position:absolute;top:4px;right:6px;min-width:16px;height:16px;padding:0 4px;
+      background:var(--purp);border-radius:8px;font-size:9px;font-weight:800;color:#fff;
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;transform:scale(0);transition:all .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    .badge.show{opacity:1;transform:scale(1)}
+
+    /* ═══ PAGES — fill remaining space ═══ */
+    .pg{flex:1;display:none;flex-direction:column;overflow:hidden;padding:0 16px}
+    .pg.on{display:flex}
+
+    /* ═══════════════════════════════════════════
+       FILTER PAGE — zero scroll layout
+       uses flex to distribute space evenly
+       ═══════════════════════════════════════════ */
+    #pF{gap:8px;padding:8px 16px calc(var(--sb) + 6px);justify-content:space-between;}
+
+    .isec{
+      background:var(--bg-sf);border-radius:14px;padding:10px 12px 12px;
+      border:1px solid var(--bdr); flex:1; display:flex; flex-direction:column; min-height:0;
+    }
+    .slbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--t40);margin-bottom:4px}
+    .vdisp{text-align:center;padding:2px 0 4px;user-select:none}
+    .bv{
+      font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:800;
+      line-height:1;letter-spacing:-1.5px;color:var(--t100);transition:color .2s;
+    }
+    .bv .pf{font-size:22px;color:var(--t40);font-weight:700;vertical-align:top;margin-right:1px}
+    .bv .sf{font-size:14px;color:var(--t20);font-weight:600;margin-left:2px;letter-spacing:0}
+    .bv.ag{color:var(--go)} .bv.ab{color:var(--blue)}
+
+    /* Slider */
+    .sw{padding:4px 0;touch-action:none}
+    input[type="range"]{
+      -webkit-appearance:none;width:100%;height:5px;border-radius:3px;outline:none;background:var(--bg-in);
+    }
+    input[type="range"]::-webkit-slider-thumb{
+      -webkit-appearance:none;width:30px;height:30px;border-radius:50%;margin-top:-12px;
+      cursor:pointer;border:3px solid var(--bg-card);
+      box-shadow:0 2px 10px rgba(0,0,0,.5);transition:transform .12s;will-change:transform;
+    }
+    input[type="range"]:active::-webkit-slider-thumb{transform:scale(1.15)}
+    .sg{background:linear-gradient(to right,var(--go) var(--p,0%),var(--bg-in) var(--p,0%))}
+    .sg::-webkit-slider-thumb{background:var(--go)}
+    .sb{background:linear-gradient(to right,var(--blue) var(--p,0%),var(--bg-in) var(--p,0%))}
+    .sb::-webkit-slider-thumb{background:var(--blue)}
+
+    /* Quick buttons — 2 rows compact */
+    .qr{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:6px}
+    .qb{
+      height:36px;display:flex;align-items:center;justify-content:center;
+      border:none;border-radius:8px;font-family:'JetBrains Mono',monospace;
+      font-size:12px;font-weight:700;cursor:pointer;transition:transform .1s;will-change:transform;
+    }
+    .qb:active{transform:scale(.92)}
+    .qa-g{background:rgba(52,211,153,.12);color:var(--go)}
+    .qa-b{background:rgba(96,165,250,.12);color:var(--blue)}
+    .qs{background:rgba(248,113,113,.06);color:var(--no);border:1px solid rgba(248,113,113,.08)}
+
+    /* Manual input - slim */
+    .mi{
+      width:100%;height:40px;margin-top:6px;
+      background:var(--bg-in);border:1.5px solid var(--bdr);border-radius:10px;
+      padding:0 12px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;
+      color:var(--t100);text-align:center;outline:none;-webkit-appearance:none;
+      transition:border-color .2s;
+    }
+    .mi::placeholder{color:var(--t20);font-weight:500}
+    .mi:focus{border-color:rgba(255,255,255,.2)}
+
+    /* Result — compact inline */
+    .rbox{
+      border-radius:14px;padding:0;
+      display:flex;align-items:center;gap:12px;
+      overflow:hidden;max-height:0;opacity:0;
+      transform:scale(.96);flex-shrink:0;
+      transition:all .35s cubic-bezier(.34,1.56,.64,1);
+      will-change:transform,opacity,max-height;
+    }
+    .rbox.vis{max-height:90px;opacity:1;transform:scale(1);padding:12px 16px}
+    .rbox .ri svg{width:28px;height:28px;flex-shrink:0}
+    .rbox .rr{font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:800;letter-spacing:-2px;line-height:1}
+    .rbox .rt{font-size:15px;font-weight:800;line-height:1.1}
+    .rbox .rd{font-size:11px;font-weight:500;opacity:.7}
+    .rbox .rinfo{flex:1;min-width:0}
+    .r-g{background:var(--go-bg);border:1.5px solid var(--go-bdr)}
+    .r-m{background:var(--mid-bg);border:1.5px solid var(--mid-bdr)}
+    .r-n{background:var(--no-bg);border:1.5px solid var(--no-bdr)}
+    .r-g .ri svg,.r-g .rr,.r-g .rt,.r-g .rd{color:var(--go)}
+    .r-m .ri svg,.r-m .rr,.r-m .rt,.r-m .rd{color:var(--mid)}
+    .r-n .ri svg,.r-n .rr,.r-n .rt,.r-n .rd{color:var(--no)}
+
+    /* Quick log button */
+    .ql{
+      height:40px;border:none;border-radius:10px;width:100%;flex-shrink:0;
+      background:rgba(52,211,153,.12);color:var(--go);
+      font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;
+      cursor:pointer;display:none;align-items:center;justify-content:center;gap:5px;
+      transition:transform .12s;
+    }
+    .ql:active{transform:scale(.95)}
+    .ql.show{display:flex}
+
+    /* ═══════════════════════════════════════════
+       LOG PAGE — zero scroll
+       ═══════════════════════════════════════════ */
+    #pL{gap:10px;padding:10px 16px calc(var(--sb) + 6px);justify-content:flex-start;}
+
+    .sbar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex-shrink:0}
+    .sc{background:var(--bg-sf);border:1px solid var(--bdr);border-radius:10px;padding:10px;text-align:center}
+    .sc .sv{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;line-height:1}
+    .sc .sl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--t40);margin-top:3px}
+    .sc-g .sv{color:var(--go)} .sc-b .sv{color:var(--blue)} .sc-p .sv{color:var(--purp)}
+
+    /* Voice section — compact */
+    .vsec{display:flex;align-items:center;gap:14px;flex-shrink:0;padding:6px 0}
+    .mic{
+      width:60px;height:60px;border-radius:50%;flex-shrink:0;
+      background:linear-gradient(135deg,var(--purp),#7c3aed);
+      border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 4px 20px rgba(167,139,250,.3);transition:transform .15s;
+    }
+    .mic svg{width:24px;height:24px;color:#fff}
+    .mic:active{transform:scale(.9)}
+    .mic.on{animation:pulse 1.5s ease-out infinite}
+    @keyframes pulse{
+      0%{box-shadow:0 4px 20px rgba(167,139,250,.5),0 0 0 0 rgba(167,139,250,.4)}
+      70%{box-shadow:0 4px 20px rgba(167,139,250,.5),0 0 0 16px rgba(167,139,250,0)}
+      100%{box-shadow:0 4px 20px rgba(167,139,250,.5),0 0 0 0 rgba(167,139,250,0)}
+    }
+    .vtext{flex:1;min-width:0}
+    .vtext .vlbl{font-size:12px;font-weight:600;color:var(--t40);line-height:1.3}
+    .vtext .vlbl.act{color:var(--purp)}
+    .vtext .vtr{font-size:14px;font-weight:600;color:var(--t80);margin-top:2px;display:none}
+    .vtext .vtr.show{display:block}
+
+    /* Confirm card — compact inline */
+    .ccrd{
+      background:var(--bg-sf);border:1px solid var(--bdr);border-radius:12px;
+      padding:12px;display:none;flex-shrink:0;
+    }
+    .ccrd.show{display:block}
+    .ccrd .crow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .ccrd .crow label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t40);width:50px;flex-shrink:0}
+    .ccrd .crow input{
+      flex:1;height:38px;background:var(--bg-in);border:1.5px solid var(--bdr);border-radius:8px;
+      font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;
+      color:var(--t100);text-align:center;outline:none;-webkit-appearance:none;
+    }
+    .ccrd .crow input:focus{border-color:rgba(255,255,255,.2)}
+    .cacts{display:flex;gap:6px}
+    .cbtn{
+      flex:1;height:40px;border:none;border-radius:10px;
+      font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
+      transition:transform .12s;
+    }
+    .cbtn:active{transform:scale(.95)}
+    .cbtn-s{background:var(--go);color:#0b0c14}
+    .cbtn-c{background:var(--bg-in);color:var(--t60);border:1px solid var(--bdr)}
+
+    /* Log list — scrollable portion takes remaining space */
+    .llhdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--t40);flex-shrink:0;margin-top:2px}
+    .ll{
+      flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+      display:flex;flex-direction:column;gap:6px;
+      min-height:0; padding-bottom:4px;
+      scrollbar-width:none;
+    }
+    .ll::-webkit-scrollbar{display:none}
+    .le{
+      display:flex;align-items:center;gap:10px;flex-shrink:0;
+      background:var(--bg-sf);border:1px solid var(--bdr);border-radius:10px;
+      padding:10px 12px; min-height:48px;
+      animation:sIn .3s ease-out;
+    }
+    @keyframes sIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+    .le .la{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:800;color:var(--go);min-width:60px}
+    .le .lm{font-size:11px;font-weight:600;color:var(--t40)}
+    .le .lr{
+      font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
+      padding:2px 6px;border-radius:5px;margin-left:auto;white-space:nowrap;
+    }
+    .lr.g{background:var(--go-bg);color:var(--go)}
+    .lr.o{background:var(--mid-bg);color:var(--mid)}
+    .lr.b{background:var(--no-bg);color:var(--no)}
+    .le .lt{font-size:10px;font-weight:500;color:var(--t20);white-space:nowrap;margin-left:4px}
+    .le .ld{
+      width:26px;height:26px;border-radius:50%;border:none;cursor:pointer;flex-shrink:0;
+      background:rgba(248,113,113,.06);color:var(--no);
+      display:flex;align-items:center;justify-content:center;transition:transform .12s;margin-left:4px;
+    }
+    .le .ld:active{transform:scale(.85)}
+    .le .ld svg{width:12px;height:12px}
+
+    .empty{text-align:center;padding:20px 0;color:var(--t20);font-size:13px;font-weight:500}
+    .empty svg{width:36px;height:36px;stroke:var(--t10);margin:0 auto 8px;display:block}
+  </style>
 </head>
 <body>
-    <div id="root"></div>
+<div class="card">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <button class="rst" id="btnR" aria-label="Reset">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    </button>
+    <h1>Filtro Express Pro</h1>
+    <p class="sub">Calcula rápido, no choques</p>
+  </header>
+
+  <!-- TABS -->
+  <nav class="tabs">
+    <button class="tb on" data-t="f">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+      Filtro
+    </button>
+    <button class="tb" data-t="l">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4-1h8M12 4a7.001 7.001 0 00-4.95 2.05"/><circle cx="12" cy="11" r="3"/></svg>
+      Log Voz
+      <span class="badge" id="bdg">0</span>
+    </button>
+  </nav>
+
+  <!-- ═══ FILTER PAGE ═══ -->
+  <div class="pg on" id="pF">
+
+    <!-- Precio -->
+    <section class="isec">
+      <div class="slbl">Precio</div>
+      <div class="vdisp"><div class="bv" id="pV"><span class="pf">$</span>0</div></div>
+      <div class="sw"><input type="range" id="pS" class="sg" min="0" max="40" step=".5" value="0"></div>
+      <div class="qr">
+        <button class="qb qs" data-f="p" data-d="-1">−$1</button>
+        <button class="qb qa-g" data-f="p" data-d="1">+$1</button>
+        <button class="qb qs" data-f="p" data-d="-5">−$5</button>
+        <button class="qb qa-g" data-f="p" data-d="5">+$5</button>
+      </div>
+      <input type="number" class="mi" id="pM" inputmode="decimal" placeholder="Exacto..." autocomplete="off">
+    </section>
+
+    <!-- Millas -->
+    <section class="isec">
+      <div class="slbl">Millas</div>
+      <div class="vdisp"><div class="bv" id="mV">0<span class="sf">mi</span></div></div>
+      <div class="sw"><input type="range" id="mS" class="sb" min="0" max="25" step=".5" value="0"></div>
+      <div class="qr">
+        <button class="qb qs" data-f="m" data-d="-1">−1m</button>
+        <button class="qb qa-b" data-f="m" data-d="1">+1m</button>
+        <button class="qb qs" data-f="m" data-d="-3">−3m</button>
+        <button class="qb qa-b" data-f="m" data-d="3">+3m</button>
+      </div>
+      <input type="number" class="mi" id="mM" inputmode="decimal" placeholder="Exacto..." autocomplete="off">
+    </section>
+
+    <!-- Result — horizontal compact -->
+    <div class="rbox" id="res" role="status" aria-live="polite">
+      <div class="ri" id="rI"></div>
+      <div class="rr" id="rR"></div>
+      <div class="rinfo">
+        <div class="rt" id="rT"></div>
+        <div class="rd" id="rD"></div>
+      </div>
+    </div>
+
+    <!-- Quick log -->
+    <button class="ql" id="qL">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Logear entrega
+    </button>
+
+  </div>
+
+  <!-- ═══ LOG PAGE ═══ -->
+  <div class="pg" id="pL">
+
+    <!-- Stats -->
+    <div class="sbar">
+      <div class="sc sc-g"><div class="sv" id="sT">$0</div><div class="sl">Ganado</div></div>
+      <div class="sc sc-b"><div class="sv" id="sM">0</div><div class="sl">Millas</div></div>
+      <div class="sc sc-p"><div class="sv" id="sC">0</div><div class="sl">Entregas</div></div>
+    </div>
+
+    <!-- Voice -->
+    <div class="vsec">
+      <button class="mic" id="micB" aria-label="Grabar">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+          <path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+      <div class="vtext">
+        <div class="vlbl" id="vL">Toca pa' grabar — di precio y millas</div>
+        <div class="vtr" id="vT"></div>
+      </div>
+    </div>
+
+    <!-- Confirm -->
+    <div class="ccrd" id="cC">
+      <div class="crow"><label>Precio</label><input type="number" id="cP" inputmode="decimal" placeholder="$0"></div>
+      <div class="crow"><label>Millas</label><input type="number" id="cM" inputmode="decimal" placeholder="0"></div>
+      <div class="cacts">
+        <button class="cbtn cbtn-c" id="cX">Cancelar</button>
+        <button class="cbtn cbtn-s" id="cS">Guardar</button>
+      </div>
+    </div>
+
+    <!-- Log list -->
+    <div class="llhdr">Entregas de hoy</div>
+    <div class="ll" id="lL">
+      <div class="empty" id="emp">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4-1h8"/><circle cx="12" cy="11" r="3"/></svg>
+        Sin entregas aún. Usa el mic o logea desde el filtro.
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const $=id=>document.getElementById(id);
+  const hap=(ms=10)=>{if(navigator.vibrate)navigator.vibrate(ms)};
+  const dk=()=>new Date().toISOString().slice(0,10);
+
+  /* DOM */
+  const pS=$('pS'),mS=$('mS'),pV=$('pV'),mV=$('mV'),pM=$('pM'),mM=$('mM');
+  const res=$('res'),rI=$('rI'),rR=$('rR'),rT=$('rT'),rD=$('rD'),qL=$('qL');
+  const micB=$('micB'),vL=$('vL'),vT=$('vT'),cC=$('cC'),cP=$('cP'),cM=$('cM');
+  const lL=$('lL'),emp=$('emp'),bdg=$('bdg');
+
+  const IC={
+    go:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+    mid:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>',
+    no:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+  };
+  const RC={
+    go:{c:'r-g',i:IC.go,t:'Cógelo sin pensarlo',d:'¡Ganancia pura!'},
+    mid:{c:'r-m',i:IC.mid,t:'Está decente',d:'Resuelve pa\' la gasolina'},
+    no:{c:'r-n',i:IC.no,t:'¡Diablo, pichea!',d:'Te están velando'}
+  };
+
+  /* STATE */
+  const F={p:0,m:0};
+  let lastR=null;
+
+  /* STORAGE */
+  const getE=()=>{try{return JSON.parse(localStorage.getItem('fe_'+dk())||'[]')}catch{return[]}};
+  const setE=e=>{try{localStorage.setItem('fe_'+dk(),JSON.stringify(e))}catch{}};
+
+  /* TABS */
+  document.querySelectorAll('.tb').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.tb').forEach(x=>x.classList.remove('on'));
+      document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      $(b.dataset.t==='f'?'pF':'pL').classList.add('on');
+      hap(6);
+    });
+  });
+
+  /* FILTER */
+  const uT=s=>{s.style.setProperty('--p',((s.value-s.min)/(s.max-s.min))*100+'%')};
+  const fP=v=>v%1===0?v.toFixed(0):v.toFixed(2);
+  const fM=v=>v%1===0?v.toFixed(0):v.toFixed(1);
+
+  function sync(){
+    F.p=Math.max(0,Math.min(40,F.p));
+    F.m=Math.max(0,Math.min(25,F.m));
+    F.p=Math.round(F.p*2)/2;
+    F.m=Math.round(F.m*2)/2;
+    pV.innerHTML='<span class="pf">$</span>'+fP(F.p);
+    mV.innerHTML=fM(F.m)+'<span class="sf">mi</span>';
+    pV.classList.toggle('ag',F.p>0);
+    mV.classList.toggle('ab',F.m>0);
+    pS.value=F.p;mS.value=F.m;
+    uT(pS);uT(mS);
+    evalF();
+  }
+
+  function evalF(){
+    res.classList.remove('vis','r-g','r-m','r-n');
+    qL.classList.remove('show');
+    if(F.p<=0||F.m<=0){lastR=null;return}
+    const r=F.p/F.m;
+    const t=r>=2?'go':r>=1?'mid':'no';
+    const c=RC[t];
+    res.classList.add(c.c);
+    rI.innerHTML=c.i;
+    rR.textContent='$'+r.toFixed(2);
+    rT.textContent=c.t;
+    rD.textContent=c.d;
+    if(t!==lastR){hap(t==='go'?20:t==='no'?30:12);lastR=t}
+    requestAnimationFrame(()=>res.classList.add('vis'));
+    qL.classList.add('show');
+  }
+
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('.qb[data-f]');
+    if(!b)return;
+    const f=b.dataset.f==='p'?'p':'m';
+    F[f]+=parseFloat(b.dataset.d);
+    hap(8);sync();
+  });
+
+  pS.addEventListener('input',()=>{F.p=parseFloat(pS.value);sync()});
+  mS.addEventListener('input',()=>{F.m=parseFloat(mS.value);sync()});
+  pM.addEventListener('input',()=>{const v=parseFloat(pM.value);if(!isNaN(v)&&v>=0){F.p=v;sync()}});
+  mM.addEventListener('input',()=>{const v=parseFloat(mM.value);if(!isNaN(v)&&v>=0){F.m=v;sync()}});
+  pM.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();mM.focus()}});
+  mM.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();mM.blur()}});
+  pM.addEventListener('focus',()=>pM.select());
+  mM.addEventListener('focus',()=>mM.select());
+
+  $('btnR').addEventListener('click',()=>{
+    F.p=0;F.m=0;pM.value='';mM.value='';hap(15);sync();
+  });
+
+  qL.addEventListener('click',()=>{
+    if(F.p>0&&F.m>0){
+      addE(F.p,F.m);hap(20);
+      F.p=0;F.m=0;pM.value='';mM.value='';sync();
+      qL.textContent='✓ Logeado';qL.classList.add('show');
+      setTimeout(()=>{
+        qL.innerHTML='<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg> Logear entrega';
+        qL.classList.remove('show');
+      },1200);
+    }
+  });
+
+  /* VOICE */
+  let rec=null,listening=false;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){
+    rec=new SR();rec.lang='es-PR';rec.interimResults=true;rec.maxAlternatives=3;rec.continuous=false;
+    rec.onstart=()=>{listening=true;micB.classList.add('on');vL.textContent='Escuchando...';vL.classList.add('act');vT.classList.add('show');vT.textContent='...'};
+    rec.onresult=ev=>{
+      let fin='',int='';
+      for(let i=ev.resultIndex;i<ev.results.length;i++){const t=ev.results[i][0].transcript;if(ev.results[i].isFinal)fin+=t;else int+=t}
+      vT.textContent=fin||int||'...';
+      if(fin)parseV(fin);
+    };
+    rec.onerror=e=>{stopL();vL.textContent=e.error==='not-allowed'?'Permite el mic en ajustes':'Error — intenta de nuevo'};
+    rec.onend=()=>stopL();
+  }
+  function stopL(){listening=false;micB.classList.remove('on');vL.classList.remove('act');if(!vL.textContent.includes('Error')&&!vL.textContent.includes('Permite'))vL.textContent='Toca pa\' grabar — di precio y millas'}
+
+  micB.addEventListener('click',()=>{
+    if(!rec){vL.textContent='Navegador sin soporte. Usa Safari.';return}
+    hap(12);
+    if(listening)rec.stop();
+    else{cC.classList.remove('show');try{rec.start()}catch{}}
+  });
+
+  function parseV(txt){
+    const n=exN(txt);
+    if(n.length>=2){cP.value=n[0];cM.value=n[1];showC()}
+    else if(n.length===1){cP.value=n[0];cM.value='';showC();vL.textContent='Falta millas — edita abajo'}
+    else vL.textContent='No entendí — di "ocho dólares, tres millas"';
+  }
+
+  function exN(t){
+    const W={'cero':0,'uno':1,'una':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,'seis':6,'siete':7,'ocho':8,'nueve':9,'diez':10,'once':11,'doce':12,'trece':13,'catorce':14,'quince':15,'veinte':20,'veinticinco':25,'treinta':30,'cuarenta':40,'cincuenta':50};
+    const nums=[];
+    let s=t.toLowerCase().replace(/dólares?|dollars?|pesos?|millas?|miles?/g,'').replace(/punto/g,'.').replace(/coma/g,'.').replace(/con /g,'.');
+    const dm=s.match(/\d+\.?\d*/g);
+    if(dm)dm.forEach(x=>nums.push(parseFloat(x)));
+    if(nums.length<2)for(const[w,v]of Object.entries(W))if(s.includes(w)&&!nums.includes(v))nums.push(v);
+    return nums.slice(0,2);
+  }
+
+  function showC(){cC.classList.add('show');hap(15)}
+
+  $('cS').addEventListener('click',()=>{
+    const p=parseFloat(cP.value),m=parseFloat(cM.value);
+    if(!isNaN(p)&&p>0&&!isNaN(m)&&m>0){
+      addE(p,m);cC.classList.remove('show');vT.classList.remove('show');cP.value='';cM.value='';
+      vL.textContent='✓ Guardado';hap(20);
+      setTimeout(()=>vL.textContent='Toca pa\' grabar — di precio y millas',1500);
+    }else{hap(30);vL.textContent='Completa precio y millas'}
+  });
+  $('cX').addEventListener('click',()=>{cC.classList.remove('show');vT.classList.remove('show');hap(6)});
+
+  /* LOG ENGINE */
+  function addE(p,m){
+    const e=getE();
+    e.unshift({id:Date.now(),p:Math.round(p*100)/100,m:Math.round(m*10)/10,t:new Date().toLocaleTimeString('es-PR',{hour:'numeric',minute:'2-digit',hour12:true})});
+    setE(e);render();
+  }
+  function delE(id){
+    setE(getE().filter(e=>e.id!==id));hap(12);render();
+  }
+
+  function render(){
+    const e=getE();
+    const tE=e.reduce((s,x)=>s+x.p,0),tM=e.reduce((s,x)=>s+x.m,0);
+    $('sT').textContent='$'+tE.toFixed(0);
+    $('sM').textContent=tM.toFixed(1);
+    $('sC').textContent=e.length;
+    if(e.length>0){bdg.textContent=e.length;bdg.classList.add('show')}else bdg.classList.remove('show');
+    if(!e.length){emp.style.display='block';lL.querySelectorAll('.le').forEach(x=>x.remove());return}
+    emp.style.display='none';
+    lL.innerHTML=e.map(x=>{
+      const r=x.p/x.m,rc=r>=2?'g':r>=1?'o':'b';
+      return`<div class="le" data-id="${x.id}">
+        <div><div class="la">$${x.p.toFixed(2)}</div><div class="lm">${x.m.toFixed(1)} mi</div></div>
+        <span class="lr ${rc}">$${r.toFixed(2)}/mi</span>
+        <span class="lt">${x.t}</span>
+        <button class="ld" aria-label="Borrar"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>`;
+    }).join('');
+  }
+
+  lL.addEventListener('click',e=>{
+    const b=e.target.closest('.ld');if(!b)return;
+    const le=b.closest('.le'),id=parseInt(le.dataset.id);
+    le.style.cssText='opacity:0;transform:translateX(30px);transition:all .25s';
+    setTimeout(()=>delE(id),250);
+  });
+
+  /* INIT */
+  sync();render();
+})();
+</script>
+
 </body>
 </html>
