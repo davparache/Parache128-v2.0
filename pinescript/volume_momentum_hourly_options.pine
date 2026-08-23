@@ -1,0 +1,139 @@
+//@version=5
+// Volume Momentum Signals - Hourly Options Helper
+//
+// Intent: time CALL/PUT entries on liquid underlyings (SPY, QQQ, big-cap names)
+// on the 1H chart for short-dated ("hourly"/0-2DTE style) options traded on
+// Robinhood. Pine Script cannot place trades on Robinhood — there is no
+// broker API — so this is a manual-execution alert tool: read the signal,
+// place the trade yourself.
+//
+// A signal only fires when enough independent conditions agree at once
+// (confluence score), because a single indicator (volume alone, or RSI
+// alone) whipsaws too much on the 1H timeframe and burns premium on theta.
+indicator("Volume Momentum Signals - Hourly Options Helper", shorttitle="VolMomentum-HR", overlay=true, max_labels_count=500)
+
+// ---------------- Inputs ----------------
+grpTrend = "Trend Filter"
+emaFastLen   = input.int(9, "Fast EMA Length", group=grpTrend)
+emaSlowLen   = input.int(21, "Slow EMA Length", group=grpTrend)
+useHtfTrend  = input.bool(true, "Require Higher Timeframe Trend Filter", group=grpTrend)
+htf          = input.timeframe("D", "Higher Timeframe", group=grpTrend)
+htfEmaLen    = input.int(20, "HTF EMA Length", group=grpTrend)
+
+grpVol = "Volume"
+volMaLen     = input.int(20, "Volume MA Length", group=grpVol)
+volSpikeMult = input.float(1.5, "Volume Spike Multiplier (x avg volume)", minval=1.0, step=0.1, group=grpVol)
+
+grpMom = "Momentum"
+rsiLen        = input.int(14, "RSI Length", group=grpMom)
+rsiOverbought = input.int(70, "RSI Overbought", group=grpMom)
+rsiOversold   = input.int(30, "RSI Oversold", group=grpMom)
+
+grpCandle = "Candle Strength"
+minBodyPct = input.float(50.0, "Minimum Candle Body % of Range", minval=0, maxval=100, group=grpCandle)
+
+grpVwap = "VWAP"
+useVwap = input.bool(true, "Require Price vs Session VWAP Confirmation", group=grpVwap)
+
+grpSignal = "Signal"
+minScore    = input.int(4, "Minimum Confluence Score (of 6) to Fire", minval=1, maxval=6, group=grpSignal)
+cooldownBars = input.int(3, "Cooldown Bars Between Signals (same direction)", minval=0, group=grpSignal)
+
+// ---------------- Trend ----------------
+emaFast = ta.ema(close, emaFastLen)
+emaSlow = ta.ema(close, emaSlowLen)
+trendUp   = emaFast > emaSlow
+trendDown = emaFast < emaSlow
+
+// lookahead_off avoids repainting from the higher-timeframe request
+htfEma   = request.security(syminfo.tickerid, htf, ta.ema(close, htfEmaLen), lookahead=barmerge.lookahead_off)
+htfClose = request.security(syminfo.tickerid, htf, close, lookahead=barmerge.lookahead_off)
+htfTrendUp   = htfClose > htfEma
+htfTrendDown = htfClose < htfEma
+
+// ---------------- Volume ----------------
+volMa    = ta.sma(volume, volMaLen)
+volSpike = volume > volMa * volSpikeMult
+
+// ---------------- Momentum ----------------
+rsi        = ta.rsi(close, rsiLen)
+rsiRising  = ta.rising(rsi, 2)
+rsiFalling = ta.falling(rsi, 2)
+
+// ---------------- VWAP ----------------
+sessVwap = ta.vwap(hlc3)
+
+// ---------------- Candle Strength ----------------
+bodySize = math.abs(close - open)
+range_   = high - low
+bodyPct  = range_ == 0 ? 0.0 : (bodySize / range_) * 100.0
+bullCandle = close > open and bodyPct >= minBodyPct
+bearCandle = close < open and bodyPct >= minBodyPct
+
+bullEngulf = close > open and close[1] < open[1] and close >= open[1] and open <= close[1]
+bearEngulf = close < open and close[1] > open[1] and close <= open[1] and open >= close[1]
+
+// ---------------- Confluence Scoring (0-6) ----------------
+bullScore = (trendUp ? 1 : 0) +
+     ((not useHtfTrend or htfTrendUp) ? 1 : 0) +
+     (volSpike ? 1 : 0) +
+     ((rsi < rsiOverbought and rsiRising) ? 1 : 0) +
+     ((not useVwap or close > sessVwap) ? 1 : 0) +
+     ((bullCandle or bullEngulf) ? 1 : 0)
+
+bearScore = (trendDown ? 1 : 0) +
+     ((not useHtfTrend or htfTrendDown) ? 1 : 0) +
+     (volSpike ? 1 : 0) +
+     ((rsi > rsiOversold and rsiFalling) ? 1 : 0) +
+     ((not useVwap or close < sessVwap) ? 1 : 0) +
+     ((bearCandle or bearEngulf) ? 1 : 0)
+
+// ---------------- Signal Edge Detection + Cooldown ----------------
+var int barsSinceCall = 999
+var int barsSincePut  = 999
+barsSinceCall := barsSinceCall + 1
+barsSincePut  := barsSincePut + 1
+
+bullReady = bullScore >= minScore and bullScore > bearScore
+bearReady = bearScore >= minScore and bearScore > bullScore
+
+callSignal = bullReady and not bullReady[1] and barsSinceCall > cooldownBars
+putSignal  = bearReady and not bearReady[1] and barsSincePut  > cooldownBars
+
+if callSignal
+    barsSinceCall := 0
+if putSignal
+    barsSincePut := 0
+
+// ---------------- Plots ----------------
+plot(emaFast, "Fast EMA", color=color.new(color.teal, 0), linewidth=1)
+plot(emaSlow, "Slow EMA", color=color.new(color.orange, 0), linewidth=1)
+plot(sessVwap, "Session VWAP", color=color.new(color.purple, 0), linewidth=1)
+
+plotshape(callSignal, title="CALL Signal", style=shape.triangleup, location=location.belowbar,
+     color=color.new(color.lime, 0), size=size.small, text="CALL")
+plotshape(putSignal, title="PUT Signal", style=shape.triangledown, location=location.abovebar,
+     color=color.new(color.red, 0), size=size.small, text="PUT")
+
+if callSignal
+    label.new(bar_index, low, "CALL\nScore " + str.tostring(bullScore) + "/6",
+         style=label.style_label_up, color=color.new(color.green, 20), textcolor=color.white, size=size.small)
+if putSignal
+    label.new(bar_index, high, "PUT\nScore " + str.tostring(bearScore) + "/6",
+         style=label.style_label_down, color=color.new(color.red, 20), textcolor=color.white, size=size.small)
+
+bgcolor(callSignal ? color.new(color.green, 85) : putSignal ? color.new(color.red, 85) : na)
+
+// ---------------- Live Score Table ----------------
+var table scoreTable = table.new(position.top_right, 2, 3, border_width=1)
+if barstate.islast
+    table.cell(scoreTable, 0, 0, "Bull Score", text_color=color.white, bgcolor=color.new(color.green, 40))
+    table.cell(scoreTable, 1, 0, str.tostring(bullScore) + "/6", text_color=color.white, bgcolor=color.new(color.green, 40))
+    table.cell(scoreTable, 0, 1, "Bear Score", text_color=color.white, bgcolor=color.new(color.red, 40))
+    table.cell(scoreTable, 1, 1, str.tostring(bearScore) + "/6", text_color=color.white, bgcolor=color.new(color.red, 40))
+    table.cell(scoreTable, 0, 2, "RSI", text_color=color.white, bgcolor=color.new(color.gray, 40))
+    table.cell(scoreTable, 1, 2, str.tostring(math.round(rsi, 1)), text_color=color.white, bgcolor=color.new(color.gray, 40))
+
+// ---------------- Alerts ----------------
+alertcondition(callSignal, title="CALL Signal", message="VolMomentum-HR: CALL setup on {{ticker}} at {{close}} ({{interval}})")
+alertcondition(putSignal, title="PUT Signal", message="VolMomentum-HR: PUT setup on {{ticker}} at {{close}} ({{interval}})")
